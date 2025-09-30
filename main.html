@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,130 +8,133 @@
     body {
       font-family: Arial, sans-serif;
       text-align: center;
+      margin-top: 20px;
     }
-    .container {
-      margin-top: 30px;
+    h1 {
+      margin-bottom: 20px;
     }
-    .hide {
-      display: none;
+    .players {
+      margin-bottom: 20px;
     }
-    .board {
+    input {
+      margin: 5px;
+      padding: 5px;
+    }
+    .grid {
       display: grid;
       grid-template-columns: repeat(3, 100px);
       grid-template-rows: repeat(3, 100px);
-      gap: 2px;
+      gap: 5px;
+      justify-content: center;
       margin: 20px auto;
-      width: max-content;
     }
     .cell {
-      background: pink;
-      border: 1px solid black;
-      font-size: 2rem;
       display: flex;
       align-items: center;
       justify-content: center;
+      font-size: 2em;
+      border: 2px solid #333;
       cursor: pointer;
+      background: #f2f2f2;
     }
-    .message {
-      font-size: 18px;
-      margin: 15px 0;
+    .cell.taken {
+      cursor: not-allowed;
+    }
+    #result {
+      margin-top: 20px;
+      font-size: 1.5em;
+      font-weight: bold;
+    }
+    button {
+      margin-top: 20px;
+      padding: 8px 15px;
+      font-size: 1em;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <!-- Input Form -->
-    <form id="player-form">
-      <h2>Tic Tac Toe</h2>
-      <label>Player 1 <input type="text" id="player-1" placeholder="enter name"></label><br><br>
-      <label>Player 2 <input type="text" id="player-2" placeholder="enter name"></label><br><br>
-      <button type="submit" id="submit">Start Game</button>
-    </form>
+  <h1>Tic Tac Toe</h1>
 
-    <!-- Game Area -->
-    <div id="game-area" class="hide">
-      <h1>Tic Tac Toe</h1>
-      <div class="message" id="message"></div>
-      <div class="board" id="board"></div>
-    </div>
+  <div class="players">
+    <input type="text" id="player1" placeholder="Player 1 name (X)">
+    <input type="text" id="player2" placeholder="Player 2 name (O)">
+    <button onclick="startGame()">Start Game</button>
   </div>
 
+  <div class="grid" id="grid"></div>
+  <div id="result"></div>
+  <button onclick="resetGame()">Reset Game</button>
+
   <script>
-    const form = document.getElementById("player-form");
-    const gameArea = document.getElementById("game-area");
-    const board = document.getElementById("board");
-    const message = document.getElementById("message");
+    let currentPlayer = "X";
+    let board = Array(9).fill("");
+    let gameActive = false;
 
-    let player1 = "", player2 = "";
-    let currentPlayer = "";
-    let currentSymbol = "X";
-    let moves = Array(9).fill(null);
-
-    const winningCombos = [
-      [0,1,2],[3,4,5],[6,7,8], // rows
-      [0,3,6],[1,4,7],[2,5,8], // cols
-      [0,4,8],[2,4,6]          // diagonals
-    ];
-
-    form.addEventListener("submit", e => {
-      e.preventDefault();
-      player1 = document.getElementById("player-1").value || "Player 1";
-      player2 = document.getElementById("player-2").value || "Player 2";
-      currentPlayer = player1;
-      currentSymbol = "X";
-      form.classList.add("hide");
-      gameArea.classList.remove("hide");
-      message.innerText = `${currentPlayer}, you're up`;
-
-      // create board
-      board.innerHTML = "";
-      for(let i=0;i<9;i++){
-        const cell = document.createElement("div");
-        cell.classList.add("cell");
-        cell.id = i+1;
-        cell.addEventListener("click", handleMove, { once: true });
-        board.appendChild(cell);
-      }
-    });
-
-    function handleMove(e){
-      const cell = e.target;
-      const index = parseInt(cell.id)-1;
-
-      moves[index] = currentSymbol;
-      cell.innerText = currentSymbol;
-
-      if(checkWinner()){
-        message.innerText = `${currentPlayer}, congratulations you won!`;
-        endGame();
-        return;
-      }
-
-      if(moves.every(m => m!==null)){
-        message.innerText = "It's a draw!";
-        return;
-      }
-
-      // switch turns
-      if(currentSymbol==="X"){
-        currentSymbol="O";
-        currentPlayer=player2;
-      } else {
-        currentSymbol="X";
-        currentPlayer=player1;
-      }
-      message.innerText = `${currentPlayer}, you're up`;
+    function startGame() {
+      const p1 = document.getElementById("player1").value || "Player 1";
+      const p2 = document.getElementById("player2").value || "Player 2";
+      document.getElementById("result").textContent = `${p1} (X) vs ${p2} (O)`;
+      gameActive = true;
+      createBoard();
     }
 
-    function checkWinner(){
-      return winningCombos.some(combo =>
-        combo.every(index => moves[index]===currentSymbol)
+    function createBoard() {
+      const grid = document.getElementById("grid");
+      grid.innerHTML = "";
+      board.fill("");
+      for (let i = 0; i < 9; i++) {
+        const cell = document.createElement("div");
+        cell.classList.add("cell");
+        cell.setAttribute("data-index", i);
+        cell.addEventListener("click", makeMove);
+        grid.appendChild(cell);
+      }
+    }
+
+    function makeMove(event) {
+      if (!gameActive) return;
+      const index = event.target.getAttribute("data-index");
+      if (board[index] !== "") return;
+
+      board[index] = currentPlayer;
+      event.target.textContent = currentPlayer;
+      event.target.classList.add("taken");
+
+      if (checkWinner()) {
+        const winnerName = currentPlayer === "X"
+          ? (document.getElementById("player1").value || "Player 1")
+          : (document.getElementById("player2").value || "Player 2");
+        document.getElementById("result").textContent = `${winnerName} wins!`;
+        gameActive = false;
+        return;
+      }
+
+      if (!board.includes("")) {
+        document.getElementById("result").textContent = "It's a draw!";
+        gameActive = false;
+        return;
+      }
+
+      currentPlayer = currentPlayer === "X" ? "O" : "X";
+    }
+
+    function checkWinner() {
+      const winPatterns = [
+        [0,1,2],[3,4,5],[6,7,8],
+        [0,3,6],[1,4,7],[2,5,8],
+        [0,4,8],[2,4,6]
+      ];
+      return winPatterns.some(pattern =>
+        pattern.every(index => board[index] === currentPlayer)
       );
     }
 
-    function endGame(){
-      const cells = document.querySelectorAll(".cell");
-      cells.forEach(cell => cell.removeEventListener("click", handleMove));
+    function resetGame() {
+      gameActive = false;
+      currentPlayer = "X";
+      document.getElementById("result").textContent = "";
+      document.getElementById("grid").innerHTML = "";
+      board.fill("");
     }
   </script>
 </body>
